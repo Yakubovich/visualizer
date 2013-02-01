@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        background: black;
+      }
+      #container {
+        background: black url("damask.gif");
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        opacity: .7;
+      }
+      audio {
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+        background: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <canvas height="256" width="1024" id="vis"></canvas>
+    </div>
+    <audio id="audio" src="az.mp3" preload controls autoplay></audio>
+    <script>
+      // See http://bit.ly/fxq7EY
+      window.requestAnimFrame = (function(){
+        return  window.requestAnimationFrame       || 
+                window.webkitRequestAnimationFrame || 
+                window.mozRequestAnimationFrame    || 
+                window.oRequestAnimationFrame      || 
+                window.msRequestAnimationFrame     || 
+                function(callback, element){
+                  window.setTimeout(callback, 1000 / 60);
+                };
+      })();
+    </script>
+    <script>
+      var audioElement  = document.getElementById('audio');
+      var canvas        = document.getElementById('vis');
+      var CANVAS_HEIGHT = canvas.height;
+      var CANVAS_WIDTH  = canvas.width;
+      var ctx           = canvas.getContext('2d');
+      var audioContext  = new webkitAudioContext();
+      var analyser      = audioContext.createAnalyser();
+      var freqData      = new Uint8Array(analyser.frequencyBinCount); //1024
+
+      ctx.fillStyle = "#fff";
+      analyser.smoothingTimeConstant = 0.9;
+
+      window.onload = init;
+
+      audioElement.addEventListener('play', draw);
+      
+      /* stream goes from audioElement to analyser to speakers */
+      function init() {
+        var source = audioContext.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+      }
+      
+      /* draw a single animation frame */
+      function draw() {
+        requestAnimFrame(draw, canvas);
+        analyser.getByteFrequencyData(freqData);
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        for (var i = 0; i < freqData.length; i++) {
+          var magnitude = freqData[i];
+          ctx.fillRect(i, CANVAS_HEIGHT, 1, -magnitude);
+        };
+      }
+    </script>
+  </body>
+</html>

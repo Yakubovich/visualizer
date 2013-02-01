@@ -1,0 +1,101 @@
+<html>
+  <head>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        background: black;
+      }
+      #container {
+        /*background: black url("damask.gif");*/
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        opacity: .7;
+      }
+      audio {
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+        background: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <canvas height="256" width="1024" id="vis"></canvas>
+    </div>
+    <audio id="audio" src="guitar.mp3" preload controls autoplay></audio>
+    <script>
+      // See http://bit.ly/fxq7EY
+      window.requestAnimFrame = (function(){
+        return  window.requestAnimationFrame       || 
+                window.webkitRequestAnimationFrame || 
+                window.mozRequestAnimationFrame    || 
+                window.oRequestAnimationFrame      || 
+                window.msRequestAnimationFrame     || 
+                function(callback, element){
+                  window.setTimeout(callback, 1000 / 60);
+                };
+      })();
+    </script>
+    <script>
+      var audioElement  = document.getElementById('audio');
+      var canvas        = document.getElementById('vis');
+      var CANVAS_HEIGHT = canvas.height;
+      var CANVAS_WIDTH  = canvas.width;
+      var ctx           = canvas.getContext('2d');
+      var audioContext  = new webkitAudioContext();
+      var analyser      = audioContext.createAnalyser();
+      var freqData      = new Uint8Array(analyser.frequencyBinCount); //1024
+
+      var t = 0;
+      var color = { r: 0, g: 0, b: 0 };
+
+      ctx.fillStyle = "#fff";
+      analyser.smoothingTimeConstant = 0.9;
+
+      ctx.translate(CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
+
+      window.onload = init;
+
+      audioElement.addEventListener('play', draw);
+      
+      /* stream goes from audioElement to analyser to speakers */
+      function init() {
+        var source = audioContext.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+      }
+      
+      /* draw a single animation frame */
+      function draw() {
+        requestAnimFrame(draw, canvas);
+        analyser.getByteFrequencyData(freqData);
+
+        color.r = Math.abs(Math.round(255*Math.sin(t/50)));
+        color.g = Math.abs(Math.round(255*Math.cos(t/25)));
+        color.b = Math.abs(Math.round(255*Math.tan(t/60)));
+        ctx.fillStyle = "rgba(" + color.r + "," + color.g + "," + color.b + ",100)";
+
+        //ctx.translate(Math.sin(t/50), Math.sin(t/50));
+
+        var sum = 0;
+        for (var i = 0; i < freqData.length; i++) {
+          var magnitude = freqData[i];
+          ctx.fillRect(i, CANVAS_HEIGHT-magnitude, 1, magnitude/4);
+          sum+= magnitude;
+        };
+
+        t+=sum/20000;
+        console.log(sum/20000);
+
+        canvas.style.webkitFilter = "blur(1px) hue-rotate(" + Math.abs(Math.round(180*Math.sin(t/500))) + "deg) contrast(" + 200 + "%)";
+
+        ctx.rotate(500*Math.PI/(sum+1));
+      }
+    </script>
+  </body>
+</html>
